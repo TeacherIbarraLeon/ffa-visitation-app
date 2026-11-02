@@ -196,23 +196,26 @@
         }
 
         .btn-group {
-            display: flex;
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
             gap: 10px;
             margin-top: 25px;
-            flex-wrap: wrap;
         }
 
         .btn {
-            flex: 1;
-            min-width: 150px;
-            padding: 12px 20px;
+            width: 100%;
+            padding: 12px 6px;
             border: none;
             border-radius: 6px;
-            font-size: 1rem;
+            font-size: 0.85rem;
             font-weight: bold;
             cursor: pointer;
             text-align: center;
             transition: opacity 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            line-height: 1.25;
         }
 
         .btn:hover {
@@ -310,6 +313,9 @@
         @media (max-width: 600px) {
             .grid-2, .signature-container {
                 grid-template-columns: 1fr;
+            }
+            .btn-group {
+                grid-template-columns: repeat(2, 1fr);
             }
         }
     </style>
@@ -434,10 +440,10 @@
         </div>
 
         <div class="btn-group">
-            <button type="button" class="btn btn-outline" onclick="saveRecord('draft')">💾 Save Draft</button>
-            <button type="button" class="btn btn-secondary" onclick="saveRecord('finalized')">✅ Save & Finalize</button>
-            <button type="button" class="btn btn-primary" onclick="sendEmail()">📧 Email with Digital Signature</button>
-            <button type="button" class="btn btn-outline" onclick="window.print()">🖨️ Save PDF with Signatures</button>
+            <button type="button" class="btn btn-outline" onclick="saveRecord('draft')">💾 Save Unfinished Draft</button>
+            <button type="button" class="btn btn-secondary" onclick="saveRecord('finalized')">✅ Save & Store in App</button>
+            <button type="button" class="btn btn-primary" onclick="saveAndEmail()">📧 Save & Send Without Signature</button>
+            <button type="button" class="btn btn-outline" onclick="saveAndPrint()">🖨️ Save & Send With Signatures</button>
         </div>
     </form>
 
@@ -530,7 +536,7 @@
             return JSON.parse(localStorage.getItem('ffa_visitation_records') || '[]');
         }
 
-        function saveRecord(status) {
+        function saveRecord(status, silent = false) {
             const recordId = document.getElementById('recordId').value || 'rec_' + Date.now();
             const projects = Array.from(document.querySelectorAll('input[name="project"]:checked')).map(cb => cb.value);
 
@@ -569,9 +575,21 @@
             }
 
             localStorage.setItem('ffa_visitation_records', JSON.stringify(records));
-            alert(status === 'draft' ? 'Draft saved successfully!' : 'Record finalized and saved!');
-            cancelEditing();
+            if (!silent) {
+                alert(status === 'draft' ? 'Draft saved successfully!' : 'Record finalized and saved!');
+                cancelEditing();
+            }
             renderHistory();
+        }
+
+        function saveAndPrint() {
+            saveRecord('finalized', true);
+            window.print();
+        }
+
+        function saveAndEmail() {
+            saveRecord('finalized', true);
+            sendEmail();
         }
 
         function renderHistory() {
