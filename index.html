@@ -285,14 +285,15 @@
         }
 
         .btn-sm {
-            padding: 4px 8px;
+            padding: 5px 10px;
             font-size: 0.8rem;
             border-radius: 4px;
             border: none;
             cursor: pointer;
+            font-weight: bold;
         }
 
-        .btn-sm-edit { background: var(--corn-gold); color: var(--national-blue); font-weight: bold; }
+        .btn-sm-open { background: var(--national-blue); color: white; }
         .btn-sm-delete { background: #EF4444; color: white; }
 
         @media print {
@@ -330,21 +331,21 @@
         <div class="grid-2">
             <div class="form-group">
                 <label for="visitDate">Date:</label>
-                <input type="date" id="visitDate" required>
+                <input type="date" id="visitDate">
             </div>
             <div class="form-group">
                 <label for="visitTime">Time:</label>
-                <input type="time" id="visitTime" required>
+                <input type="time" id="visitTime">
             </div>
         </div>
 
         <div class="grid-2">
             <div class="form-group">
                 <label for="studentName">Student Name:</label>
-                <input type="text" id="studentName" placeholder="Enter student's full name" required>
+                <input type="text" id="studentName" placeholder="Enter student's full name">
             </div>
             <div class="form-group">
-                <label for="studentEmail">Student Email:</label>
+                <label for="studentEmail">Student Email (Optional):</label>
                 <input type="email" id="studentEmail" placeholder="student@school.edu">
             </div>
         </div>
@@ -435,8 +436,8 @@
         <div class="btn-group">
             <button type="button" class="btn btn-outline" onclick="saveRecord('draft')">💾 Save Draft</button>
             <button type="button" class="btn btn-secondary" onclick="saveRecord('finalized')">✅ Save & Finalize</button>
-            <button type="button" class="btn btn-primary" onclick="sendEmail()">📧 Email Record</button>
-            <button type="button" class="btn btn-outline" onclick="window.print()">🖨️ Print / PDF</button>
+            <button type="button" class="btn btn-primary" onclick="sendEmail()">📧 Email with Digital Signature</button>
+            <button type="button" class="btn btn-outline" onclick="window.print()">🖨️ Save PDF with Signatures</button>
         </div>
     </form>
 
@@ -594,7 +595,7 @@
                     <td>${projectList || 'None'}</td>
                     <td>${statusBadge}</td>
                     <td class="table-actions">
-                        <button class="btn-sm btn-sm-edit" onclick="editRecord('${r.id}')">Edit / Sign</button>
+                        <button class="btn-sm btn-sm-open" onclick="openRecord('${r.id}')">Open</button>
                         <button class="btn-sm btn-sm-delete" onclick="deleteRecord('${r.id}')">Delete</button>
                     </td>
                 `;
@@ -602,32 +603,34 @@
             });
         }
 
-        function editRecord(id) {
+        function openRecord(id) {
             const records = getSavedRecords();
             const r = records.find(item => item.id === id);
             if (!r) return;
 
             document.getElementById('recordId').value = r.id;
-            document.getElementById('visitDate').value = r.visitDate;
-            document.getElementById('visitTime').value = r.visitTime;
-            document.getElementById('studentName').value = r.studentName;
-            document.getElementById('studentEmail').value = r.studentEmail;
-            document.getElementById('teacherName').value = r.teacherName;
-            document.getElementById('teacherEmail').value = r.teacherEmail;
+            document.getElementById('visitDate').value = r.visitDate || '';
+            document.getElementById('visitTime').value = r.visitTime || '';
+            document.getElementById('studentName').value = r.studentName || '';
+            document.getElementById('studentEmail').value = r.studentEmail || '';
+            document.getElementById('teacherName').value = r.teacherName || '';
+            document.getElementById('teacherEmail').value = r.teacherEmail || '';
 
             document.querySelectorAll('input[name="project"]').forEach(cb => {
-                cb.checked = r.projects.includes(cb.value);
+                cb.checked = r.projects ? r.projects.includes(cb.value) : false;
             });
             document.getElementById('projectOther').value = r.projectOther || '';
 
-            document.getElementById('chkDeworm').checked = r.recommendations.deworm.checked;
-            document.getElementById('dewormText').value = r.recommendations.deworm.text || '';
-            document.getElementById('chkExhibition').checked = r.recommendations.exhibition;
-            document.getElementById('chkClean').checked = r.recommendations.clean;
-            document.getElementById('chkBedding').checked = r.recommendations.bedding;
-            document.getElementById('chkFeeding').checked = r.recommendations.feeding.checked;
-            document.getElementById('feedingText').value = r.recommendations.feeding.text || '';
-            document.getElementById('extraRecommendations').value = r.recommendations.extra || '';
+            if (r.recommendations) {
+                document.getElementById('chkDeworm').checked = r.recommendations.deworm ? r.recommendations.deworm.checked : false;
+                document.getElementById('dewormText').value = (r.recommendations.deworm && r.recommendations.deworm.text) ? r.recommendations.deworm.text : '';
+                document.getElementById('chkExhibition').checked = r.recommendations.exhibition || false;
+                document.getElementById('chkClean').checked = r.recommendations.clean || false;
+                document.getElementById('chkBedding').checked = r.recommendations.bedding || false;
+                document.getElementById('chkFeeding').checked = r.recommendations.feeding ? r.recommendations.feeding.checked : false;
+                document.getElementById('feedingText').value = (r.recommendations.feeding && r.recommendations.feeding.text) ? r.recommendations.feeding.text : '';
+                document.getElementById('extraRecommendations').value = r.recommendations.extra || '';
+            }
 
             document.getElementById('otherComments').value = r.otherComments || '';
             document.getElementById('teacherSigDate').value = r.teacherSigDate || '';
@@ -670,13 +673,8 @@
         function sendEmail() {
             const studentEmail = document.getElementById('studentEmail').value;
             const teacherEmail = document.getElementById('teacherEmail').value;
-            const studentName = document.getElementById('studentName').value;
+            const studentName = document.getElementById('studentName').value || 'Student';
             const visitDate = document.getElementById('visitDate').value;
-
-            if (!studentEmail) {
-                alert('Please enter a Student Email address to send the form.');
-                return;
-            }
 
             const subject = encodeURIComponent(`Royal FFA SAE Visitation Record - ${studentName} (${visitDate})`);
             
@@ -701,9 +699,9 @@
             body += `\nOther Comments:\n${document.getElementById('otherComments').value || 'None'}\n\n`;
             body += `Signatures captured on digital record.\n`;
 
-            let mailtoUrl = `mailto:${studentEmail}?subject=${subject}&body=${encodeURIComponent(body)}`;
+            let mailtoUrl = `mailto:${studentEmail || ''}?subject=${subject}&body=${encodeURIComponent(body)}`;
             if (teacherEmail) {
-                mailtoUrl += `&cc=${teacherEmail}`;
+                mailtoUrl += `${studentEmail ? '&' : '?'}cc=${teacherEmail}`;
             }
 
             window.location.href = mailtoUrl;
